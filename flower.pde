@@ -50,46 +50,45 @@ class Circle {
   public int depthLevel;
   public int branchIndex;
   
-  public Circle(Point p,float r, int id, String sound,int depthLevel, int branchIndex){
+  public Circle(Point p,float r, int id, String sound){
     this.p = p;
     this.init_p = new Point(p.x, p.y);
     this.r = r;
     this.state = false;
     this.id = id;
     this.sound = sound;
-    this.depthLevel = depthLevel;
-    this.branchIndex = branchIndex;
   }
 }
 ArrayList<Circle> circle_list = new ArrayList<Circle>();
 int id;
 
-void createCircles(Point p,float r,int count, int max_depth, int index){
+void addCircle(Point p, float r){
   String key = pointKey(p);
-  
-  if(!visited.contains(key)){
+  if (!visited.contains(key)) {
     visited.add(key);
     String this_sound = sounds[id % sounds.length];
-    Circle newCircle = new Circle(p,r,id,this_sound,count,index);
+    Circle newCircle = new Circle(p,r,id,this_sound);
     circle_list.add(newCircle);
     id++;
   }
+}
+
+void createCircles(Point center,float r,int max_depth){
+  addCircle(center,r);
   
-  if(count == max_depth){
-    return;
-  }
-  
-  int branches = 6;
-  for(int i=0;i<branches;i++){
-    if (index != -1 && (i == (index + 3) % 6)) {
-      continue;
+  for(int depth=1;depth<=max_depth;depth++){
+    int branches = depth * 6;
+    for(int i=0;i<branches;i++){
+      float angle = TWO_PI / branches * i;
+      float layerRadius = depth * r;
+      
+      Point next_p = new Point(
+        center.x+cos(angle)*layerRadius,
+        center.y+sin(angle)*layerRadius
+      );
+      
+      addCircle(next_p,r);
     }
-    
-    float angle = radians(i * 60); // 乗算で図形を変更。足し算で角度
-    
-    Point nextP = new Point(p.x + cos(angle) * r, p.y + sin(angle) * r);
-    
-    createCircles(nextP, r, count + 1, max_depth, i); // rで複雑な変換
   }
 }
 
@@ -185,7 +184,7 @@ void setup(){
   
   Point center = new Point(width/2.0,height/2.0);
   float r = 60.0;
-  createCircles(center,r*1.5,0,depth,-1); // rで大きさを変換
+  createCircles(center,r*1.5,depth); // rで大きさを変換
   println(circle_list.size());
 }
 
