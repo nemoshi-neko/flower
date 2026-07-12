@@ -10,14 +10,22 @@ TriOsc tri_osc;
 Env env;
 
 String[] sounds = {
-  "../../music/01_bird.wav",
-  "../../music/01_campfire.wav",
-  "../../music/01_choir.wav",
-  "../../music/01_pad.wav",
-  "../../music/01_piano.wav",
-  "../../music/01_run.wav",
-  "../../music/01_string.wav",
-  "../../music/01_water.wav",
+  "../../sound/master.wav",//0
+  
+  "../../sound/strings1.wav", "../../sound/choir.wav","../../sound/pad.wav",
+  "../../sound/strings2.wav", "../../sound/choir2.wav","../../sound/pad2.wav",//6
+  
+  
+  "../../sound/bell.wav", "../../sound/pad_low.wav","../../sound/shakuhachi.wav",
+  "../../sound/bird.wav", "../../sound/piano_melo.wav", "../../sound/water.wav",
+  "../../sound/birds.wav", "../../sound/piano1.wav", "../../sound/windchime.wav",
+  "../../sound/campfire.wav", "../../sound/shaker.wav",// "../../sound/piano_base.wav", // 18
+  
+  /*
+  "../../sound/.wav", "../../sound/.wav",
+  "../../sound/.wav", "../../sound/.wav", "../../sound/.wav",
+  "../../sound/.wav", "../../sound/.wav", "../../sound/.wav",
+  */
 };
 
 HashMap<String, SoundFile> sound_files = new HashMap<String, SoundFile>();
@@ -74,20 +82,24 @@ void addCircle(Point p, float r){
 }
 
 void createCircles(Point center,float r,int max_depth){
-  addCircle(center,r);
+  Point[] d = new Point[6];
+  for(int i=0;i<6;i++){
+    float angle = radians(i*60);
+    d[i] = new Point(cos(angle)*r,sin(angle)*r);
+  }
   
+  addCircle(center,r);
   for(int depth=1;depth<=max_depth;depth++){
-    int branches = depth * 6;
-    for(int i=0;i<branches;i++){
-      float angle = TWO_PI / branches * i;
-      float layerRadius = depth * r;
-      
-      Point next_p = new Point(
-        center.x+cos(angle)*layerRadius,
-        center.y+sin(angle)*layerRadius
-      );
-      
-      addCircle(next_p,r);
+    float cx = center.x+d[0].x*depth;
+    float cy = center.y+d[0].y*depth;
+    for(int i=0;i<6;i++){
+      int move_dir = (i+2)%6;
+      for(int step=0;step<depth;step++){
+        Point next_p = new Point(cx,cy);
+        addCircle(next_p,r);
+        cx += d[move_dir].x;
+        cy += d[move_dir].y;
+      }
     }
   }
 }
@@ -121,7 +133,7 @@ void drawCircles(){
 }
 
 void audioSetup(){
-  base_sound = new SoundFile(this, "../../music/01_piano.wav");
+  base_sound = new SoundFile(this, "../../sound/piano_base.wav");
   
   for (int i = 0; i < sounds.length; i++) {
     String path = sounds[i];
