@@ -66,7 +66,7 @@ void updateVolumes(){
   for(String path : sounds){
     float volume = 0.0;
     
-    for(Circle c : circles.list){
+    for(Circle c : circleFlower.circle_list){
       if(c.sound.equals(path) && c.state){
         volume += 0.4;
       }
@@ -106,29 +106,6 @@ class FlowerPoint {
   }
 }
 
-class Points{
-  public ArrayList<Circle> list = new ArrayList<Circle>();
-  private HashSet<String> visited = new HashSet<String>();
-  private int id;
-
-  public Points() {
-    this.list = new ArrayList<Circle>();
-    this.visited = new HashSet<String>();
-    this.id = 0;
-  }
-  
-  public void add(Point p, float r){
-    String key = pointKey(p);
-    if (!visited.contains(key)) {
-      visited.add(key);
-      String this_sound = sounds[id % sounds.length];
-      Circle newCircle = new Circle(p,r,id,this_sound);
-      this.list.add(newCircle);
-      id++;
-    }
-  }
-}
-
 // Circle
 class Circle {
   public Point p;
@@ -150,36 +127,12 @@ class Circle {
   }
 }
 
-class Circles{
-  public ArrayList<Circle> list = new ArrayList<Circle>();
-  private HashSet<String> visited = new HashSet<String>();
-  private int id;
-
-  public Circles() {
-    this.list = new ArrayList<Circle>();
-    this.visited = new HashSet<String>();
-    this.id = 0;
-  }
-  
-  public void add(Point p, float r){
-    String key = pointKey(p);
-    if (!visited.contains(key)) {
-      visited.add(key);
-      String this_sound = sounds[id % sounds.length];
-      Circle newCircle = new Circle(p,r,id,this_sound);
-      this.list.add(newCircle);
-      id++;
-    }
-  }
-}
-Circles circles;
-
 // Flower
 abstract class Flower {
   public Point center;
-  protected int max_depth = 3;
+  protected int max_depth;
   protected float r;
-  public ArrayList<FlowerPoints> points = new ArrayList<FlowerPoint>();
+  public ArrayList<FlowerPoint> points = new ArrayList<FlowerPoint>();
   private HashSet<String> visited = new HashSet<String>();
 
   public Flower(Point center, float r, int max_depth){
@@ -220,7 +173,7 @@ abstract class Flower {
         int move_dir = (i+2)%6;
         for(int step=0;step<depth;step++){
           Point next_p = new Point(cx,cy);
-          if(addPoint(next_p,r,idx)) idx++;
+          if(addPoint(next_p,depth,idx)) idx++;
           cx += d[move_dir].x;
           cy += d[move_dir].y;
         }
@@ -233,7 +186,7 @@ abstract class Flower {
 }
 
 class CircleFlower extends Flower{
-  public ArrayList<Circle> circleList = new ArrayList<Circle>();
+  public ArrayList<Circle> circle_list = new ArrayList<Circle>();
 
   public CircleFlower(Point center, float r, int max_depth){
     super(center,r,max_depth);
@@ -241,8 +194,8 @@ class CircleFlower extends Flower{
     int id = 0;
     for(FlowerPoint fp : points){
       String this_sound = sounds[id % sounds.length];
-      Circle newCircle = new Circle(p,r,id,this_sound);
-      this.list.add(newCircle);
+      Circle newCircle = new Circle(fp.p,r,id,this_sound);
+      circle_list.add(newCircle);
       id++;
     }
   }
@@ -252,7 +205,7 @@ class CircleFlower extends Flower{
     float angle = frameCount * 0.0005;
     float scale = 1.0 + sin(frameCount * 0.01) * 0.04;
     float r_scale = 1.5 + sin(frameCount * 0.002);
-    for(Circle c : circles.list){
+    for(Circle c : circle_list){
       Point d = new Point(
         c.init_p.x - center.x,
         c.init_p.y - center.y
@@ -274,7 +227,7 @@ class CircleFlower extends Flower{
   @Override
   public void draw(){
     blendMode(ADD);
-    for (Circle c : circles.list) {
+    for (Circle c : circle_list) {
       float current_vol = 0; 
       Amplitude current_amp = amp.get(c.sound);
       if(current_amp != null)
@@ -291,24 +244,77 @@ class CircleFlower extends Flower{
     blendMode(BLEND);
     stroke(216);
     strokeWeight(1.5);
-    for(Circle c : circles.list){
+    for(Circle c : circle_list){
       ellipse(c.p.x, c.p.y, c.r * 2, c.r * 2);
     }
     fill(255);
     textAlign(CENTER, CENTER);
     textSize(12);
   
-    for (Circle c : circles.list) {
+    for (Circle c : circle_list) {
       text(c.id, c.p.x, c.p.y);
     }
   }
 }
+CircleFlower circleFlower;
 
 class LineFlower extends Flower {
+  private float base_angle;
   public LineFlower(Point center, float r, int max_depth){
     super(center,r,max_depth);
+    base_angle = 0;
+  }
+  
+
+  @Override
+  public void draw(){
+    blendMode(ADD);
+    noFill();
+
+    for (int d = 1; d <= max_depth; d++) {
+      ArrayList<FlowerPoint> layerPoints = new ArrayList<FlowerPoint>();
+      for (FlowerPoint fp : points) {
+        if (fp.depth == d) {
+          layerPoints.add(fp);
+        }
+      }
+      
+      int n = layerPoints.size();
+      if (n < 2) continue;
+      stroke(255, 255, 10, 60);
+      
+      for (int i = 0; i < n; i++) {
+        Point p1 = layerPoints.get(i).p;
+        for (int j = i + 1; j < n; j++) {
+          Point p2 = layerPoints.get(j).p;
+          line(p1.x, p1.y, p2.x, p2.y);
+        }
+      }
+    }
+    blendMode(BLEND);
+  }
+
+  @Override
+  public void update(){
+    float angle;
+    float speed = 1.0 - 0.85 * cos(12*base_angle);
+    base_angle += 0.01 * speed;
+    
+    for(FlowerPoint fp : points){
+      Point d = new Point(
+        fp.init_p.x - center.x,
+        fp.init_p.y - center.y
+      );
+
+      if(fp.depth%2 == 1) angle = base_angle;
+      else angle = -base_angle;
+
+      fp.p.x = center.x + d.x*cos(angle) - d.y*sin(angle);
+      fp.p.y = center.y + d.x*sin(angle) + d.y*cos(angle);
+    }
   }
 }
+LineFlower lineFlower;
 
 // processing
 void setup(){
@@ -317,26 +323,29 @@ void setup(){
   background(0);
   
   audioSetup();
-  circles = new Circles();
   
   Point center = new Point(width/2.0,height/2.0);
+  Point linecenter = new Point(width/3.0,height/3.0);
   float r = 60.0;
+  int depth = 2;
 
   circleFlower = new CircleFlower(center,r*1.5,depth); // rで大きさを変換
-  println(circles.list.size());
+  lineFlower = new LineFlower(linecenter,r,depth);
 }
 
 void draw(){
   background(0);
   circleFlower.draw();
+  lineFlower.draw();
   circleFlower.update();
+  lineFlower.update();
 }
 
 void mousePressed(){
   if(mouseButton == RIGHT){
-    for(Circle c : circles.list) c.state = false;
+    for(Circle c : circleFlower.circle_list) c.state = false;
   } else {
-    for (Circle c : circles.list) {
+    for (Circle c : circleFlower.circle_list) {
       float d = dist(mouseX, mouseY, c.p.x, c.p.y);
     
       if (d < c.r) {
