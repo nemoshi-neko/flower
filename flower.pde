@@ -137,6 +137,7 @@ abstract class Shape {
   public String sound;
   public int depthLevel;
   public int branchIndex;
+  public int Color;
   
   public Shape(Point p,float r, int id, String sound){
     this.p = p;
@@ -145,14 +146,14 @@ abstract class Shape {
     this.state = false;
     this.id = id;
     this.sound = sound;
+    this.Color = color(255, 64, 150);
   }
 
   public void render(float current_vol){
     if(state){
       blendMode(ADD);
-      float blue = map(current_vol, 0, 0.5,150,90);
       float alpha = map(current_vol, 0, 0.5, 100, 90);
-      fill(255,64,blue,alpha);
+      fill(Color,alpha);
       noStroke();
       draw();
       blendMode(BLEND);
@@ -437,9 +438,13 @@ void setup(){
   flowers.add(new ShapeFlower(center,r*1.5,depth,
     (p,radius,id,sound) -> new Circle(p,radius,id,sound)
   )); // rで大きさを変換
-  flowers.add(new LineFlower(left,r,depth));
+  flowers.add(new LineFlower(left,r*2,depth));
   flowers.add(new ShapeFlower(right,r,depth,
-    (p,radius,id,sound) -> new NGon(p,radius,id,sound, 6)
+    (p,radius,id,sound) -> {
+      NGon ngon = new NGon(p,radius,id,sound, 6);
+      ngon.Color = color(10, 50, 155);
+      return ngon;
+    }
   ));
   
   // thread("audioSetup");
