@@ -76,11 +76,8 @@ void audioSetup(){
 void updateVolumes(){
   for(SoundFile sf : sound_files.values()) sf.amp(0.0);
 
-  for(Shape s : shapeFlower.shape_list){
-    if(s.state){
-      SoundFile sf = sound_files.get(s.sound);
-      if(sf != null) sf.amp(0.4*master_volume);
-    }
+  for(Flower f : flowers){
+    f.updateVolumes(sound_files, master_volume);
   }
   /*
   for(String path : sounds){
@@ -232,6 +229,7 @@ abstract class Flower {
   public Flower(Point center, float r, int max_depth){
     this.center = center;
     this.r = r;
+    this.r = r;
     this.max_depth = max_depth;
     plant();
   }
@@ -275,9 +273,13 @@ abstract class Flower {
     }
   }
 
+  public abstract void mousePressed(float mx, float my, int button);
+  public abstract void updateVolumes(HashMap<String,SoundFile> sound_files, float master_volume);
+
   public abstract void update();
   public abstract void draw();
 }
+ArrayList<Flower> flowers = new ArrayList<Flower>();
 
 class ShapeFlower extends Flower{
   public ArrayList<Shape> shape_list = new ArrayList<Shape>();
@@ -291,6 +293,31 @@ class ShapeFlower extends Flower{
       Shape newShape = factory.create(fp.p,r,id,this_sound);
       shape_list.add(newShape);
       id++;
+    }
+  }
+
+  @Override
+  public void mousePressed(float mx, float my, int button){
+    if(mouseButton == RIGHT){
+      for(Shape s : shape_list) s.state = false;
+    } else {
+      for (Shape s : shape_list) {
+        if (s.contains(mouseX,mouseY)) {
+          s.state = !s.state;
+          println("Clicked ID: " + s.id + " | Sound: " + s.sound + " | State: " + s.state);
+          break;
+        }
+      }
+    }
+  }
+
+  @Override
+  public void updateVolumes(HashMap<String,SoundFile> sound_files, float master_volume){
+    for(Shape s : shape_list){
+      if(s.state){
+        SoundFile sf = sound_files.get(s.sound);
+        if(sf != null) sf.amp(0.4*master_volume);
+      }
     }
   }
 
@@ -331,7 +358,6 @@ class ShapeFlower extends Flower{
     for (Shape s : shape_list) s.postRender();
   }
 }
-ShapeFlower shapeFlower;
 
 class LineFlower extends Flower {
   private float base_angle;
@@ -339,6 +365,11 @@ class LineFlower extends Flower {
     super(center,r,max_depth);
     base_angle = 0;
   }
+  
+  @Override
+  public void mousePressed(float mx, float my, int button){};
+  @Override
+  public void updateVolumes(HashMap<String, SoundFile> sound_files, float master_volume){};
 
   @Override
   public void draw(){
@@ -390,7 +421,6 @@ class LineFlower extends Flower {
     }
   }
 }
-LineFlower lineFlower;
 
 // processing;
 void setup(){
@@ -398,15 +428,19 @@ void setup(){
   smooth(8);
   dot = ".";
   
+  Point left = new Point(width/4.0,height/2.0);
   Point center = new Point(width/2.0,height/2.0);
-  Point linecenter = new Point(width/3.0,height/3.0);
+  Point right = new Point(width*3/4.0,height/2.0);
   float r = 60.0;
   int depth = 2;
 
-  shapeFlower = new ShapeFlower(center,r*1.5,depth
+  flowers.add(new ShapeFlower(center,r*1.5,depth,
     (p,radius,id,sound) -> new Circle(p,radius,id,sound)
-  ); // rで大きさを変換
-  lineFlower = new LineFlower(linecenter,r,depth);
+  )); // rで大きさを変換
+  flowers.add(new LineFlower(left,r,depth));
+  flowers.add(new ShapeFlower(right,r,depth,
+    (p,radius,id,sound) -> new NGon(p,radius,id,sound, 6)
+  ));
   
   // thread("audioSetup");
 }
@@ -425,10 +459,10 @@ void nowLoading(){
 
 void mainLoop(){
   background(0);
-  shapeFlower.draw();
-  lineFlower.draw();
-  shapeFlower.update();
-  lineFlower.update();
+  for(Flower f : flowers){
+    f.update();
+    f.draw();
+  }
 }
 
 void draw(){
@@ -437,17 +471,7 @@ void draw(){
 }
 
 void mousePressed(){
-  if(mouseButton == RIGHT){
-    for(Shape s : shapeFlower.shape_list) s.state = false;
-  } else {
-    for (Shape s : shapeFlower.shape_list) {
-      if (s.contains(mouseX,mouseY)) {
-        s.state = !s.state;
-        println("Clicked ID: " + s.id + " | Sound: " + s.sound + " | State: " + s.state);
-        break;
-      }
-    }
-  }
+  for(Flower f : flowers) f.mousePressed(mouseX, mouseY, mouseButton);
   updateVolumes();
 }
 
