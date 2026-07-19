@@ -4,7 +4,7 @@ import java.util.HashMap;
 import processing.sound.*;
 
 // loading
-boolean is_loaded = true;
+boolean is_loaded = false;
 String dot;
 String dots;
 
@@ -79,7 +79,7 @@ void updateVolumes(){
   for(Flower f : flowers){
     f.updateVolumes(sound_files, master_volume);
   }
-  /*
+  /*　同じ音を押したとき強くなる（ちょい重）
   for(String path : sounds){
     float volume = 0.0;
     
@@ -390,10 +390,10 @@ class LineFlower extends Flower {
       int n = layerPoints.size();
       if (n < 3) continue;
 
-      float color_amt = map(lerp_vol,0,2.0, 0.0, 1.0);
+      float color_amt = map(lerp_vol,0,0.5, 0.0, 1.0);
       color_amt = constrain(color_amt, 0.0, 1.0);
-      int max_color = color(255, 64, 150, 180);
-      int line_color = lerpColor(color(64,255,255),max_color,color_amt);
+      int max_color = color(64, 255, 255, 200);
+      int line_color = lerpColor(color(255,255,64,200),max_color,color_amt);
       stroke(line_color);
       strokeWeight(1.5);
       
@@ -415,7 +415,7 @@ class LineFlower extends Flower {
     float volume = 0;
     for(String path : sounds){
       Amplitude a = amp.get(path);
-      if(a!=null) volume += a.analyze();
+      if(a!=null) volume += a.analyze()*8.0;
     }
     lerp_vol = lerp(lerp_vol,volume,0.1);
 
@@ -462,7 +462,7 @@ void setup(){
     }
   ));
   
-  // thread("audioSetup");
+  thread("audioSetup");
 }
 
 void nowLoading(){
