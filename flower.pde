@@ -4,7 +4,7 @@ import java.util.HashMap;
 import processing.sound.*;
 
 // loading
-boolean is_loaded = false;
+boolean is_loaded = true;
 String dot;
 String dots;
 
@@ -76,7 +76,7 @@ void audioSetup(){
 void updateVolumes(){
   for(SoundFile sf : sound_files.values()) sf.amp(0.0);
 
-  for(Shape s : circleFlower.shape_list){
+  for(Shape s : shapeFlower.shape_list){
     if(s.state){
       SoundFile sf = sound_files.get(s.sound);
       if(sf != null) sf.amp(0.4*master_volume);
@@ -86,7 +86,7 @@ void updateVolumes(){
   for(String path : sounds){
     float volume = 0.0;
     
-    for(Shape s : circleFlower.shape_list){
+    for(Shape s : shapeFlower.shape_list){
       if(s.sound.equals(path) && s.state){
         volume += 0.4;
       }
@@ -127,6 +127,10 @@ class FlowerPoint {
 }
 
 // Shapes
+interface ShapeFactory {
+  Shape create(Point p, float r, int id, String sound);
+}
+
 abstract class Shape {
   public Point p;
   public Point init_p;
@@ -190,16 +194,19 @@ class Circle extends Shape{
   }
 }
 
-class Hexagon extends Shape {
-  public Hexagon(Point p, float r, int id, String sound){
+class NGon extends Shape {
+  private int sides;
+
+  public NGon(Point p, float r, int id, String sound, int sides){
     super(p,r,id,sound);
+    this.sides = sides;
   }
 
   @Override
   protected void draw(){
     beginShape();
-    for(int i=0;i<6;i++){
-      float angle = radians(i*60);
+    for(int i=0;i<sides;i++){
+      float angle = radians(i*(360.0 / sides));
       vertex(
         p.x + cos(angle)*r,
         p.y + sin(angle)*r
@@ -210,7 +217,7 @@ class Hexagon extends Shape {
 
   @Override
   public boolean contains(float mx, float my){
-    return dist(mx, my, p.x, p.y) < r * 0.966;
+    return dist(mx, my, p.x, p.y) < r * 0.9;
   }
 }
 
@@ -272,16 +279,16 @@ abstract class Flower {
   public abstract void draw();
 }
 
-class CircleFlower extends Flower{
+class ShapeFlower extends Flower{
   public ArrayList<Shape> shape_list = new ArrayList<Shape>();
 
-  public CircleFlower(Point center, float r, int max_depth){
+  public ShapeFlower(Point center, float r, int max_depth, ShapeFactory factory){
     super(center,r,max_depth);
 
     int id = 0;
     for(FlowerPoint fp : points){
       String this_sound = sounds[id % sounds.length];
-      Shape newShape = new Circle(fp.p,r,id,this_sound);
+      Shape newShape = factory.create(fp.p,r,id,this_sound);
       shape_list.add(newShape);
       id++;
     }
@@ -324,7 +331,7 @@ class CircleFlower extends Flower{
     for (Shape s : shape_list) s.postRender();
   }
 }
-CircleFlower circleFlower;
+ShapeFlower shapeFlower;
 
 class LineFlower extends Flower {
   private float base_angle;
@@ -332,7 +339,6 @@ class LineFlower extends Flower {
     super(center,r,max_depth);
     base_angle = 0;
   }
-  
 
   @Override
   public void draw(){
@@ -348,12 +354,14 @@ class LineFlower extends Flower {
       }
       
       int n = layerPoints.size();
-      if (n < 2) continue;
+      if (n < 3) continue;
       stroke(255, 255, 10, 60);
       
       for (int i = 0; i < n; i++) {
         Point p1 = layerPoints.get(i).p;
         for (int j = i + 1; j < n; j++) {
+          int diff = j-i;
+          if(min(diff,n-diff) < 3) continue;
           Point p2 = layerPoints.get(j).p;
           line(p1.x, p1.y, p2.x, p2.y);
         }
@@ -395,10 +403,12 @@ void setup(){
   float r = 60.0;
   int depth = 2;
 
-  circleFlower = new CircleFlower(center,r*1.5,depth); // rで大きさを変換
+  shapeFlower = new ShapeFlower(center,r*1.5,depth
+    (p,radius,id,sound) -> new Circle(p,radius,id,sound)
+  ); // rで大きさを変換
   lineFlower = new LineFlower(linecenter,r,depth);
   
-  thread("audioSetup");
+  // thread("audioSetup");
 }
 
 void nowLoading(){
@@ -410,14 +420,14 @@ void nowLoading(){
   fill(255, 150 + sin(frameCount * 0.01) * 105);
   textAlign(LEFT,BOTTOM);
   textSize(24);
-  text("now Loading" + dots, width-40 - maxWidth, height-40);
+  text("now Loading" + dots, width-200, height-40);
 }
 
 void mainLoop(){
   background(0);
-  circleFlower.draw();
+  shapeFlower.draw();
   lineFlower.draw();
-  circleFlower.update();
+  shapeFlower.update();
   lineFlower.update();
 }
 
@@ -428,9 +438,9 @@ void draw(){
 
 void mousePressed(){
   if(mouseButton == RIGHT){
-    for(Shape s : circleFlower.shape_list) s.state = false;
+    for(Shape s : shapeFlower.shape_list) s.state = false;
   } else {
-    for (Shape s : circleFlower.shape_list) {
+    for (Shape s : shapeFlower.shape_list) {
       if (s.contains(mouseX,mouseY)) {
         s.state = !s.state;
         println("Clicked ID: " + s.id + " | Sound: " + s.sound + " | State: " + s.state);
