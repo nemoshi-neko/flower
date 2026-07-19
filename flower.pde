@@ -3,27 +3,31 @@ import java.util.HashSet;
 import java.util.HashMap;
 import processing.sound.*;
 
+// sound setting
 TriOsc tri_osc;
 Env env;
 
-// sound setting
+FFT fft;
+int bands = 256;
+float[] spectrum = new float[bands];
+
 String[] sounds = {
-  "../../sound/piano1.wav", //0
+  "../../sound/piano_melo1.mp3", //0
   
   // 2nd depth sound (6)
-  "../../sound/strings1.wav", "../../sound/choir.wav","../../sound/pad.wav",
-  "../../sound/strings2.wav", "../../sound/choir2.wav","../../sound/pad2.wav",
+  "../../sound/strings1.mp3", "../../sound/choir1.mp3","../../sound/pad1.mp3",
+  "../../sound/strings2.mp3", "../../sound/choir2.mp3","../../sound/pad2.mp3",
 
   // 3rd depth sound (18)
-  "../../sound/bell.wav", "../../sound/pad_low.wav","../../sound/shakuhachi.wav",
-  "../../sound/bird.wav", "../../sound/piano_melo.wav", "../../sound/water.wav",
-  "../../sound/birds.wav", "../../sound/piano_base.wav", "../../sound/windchime.wav",
-  "../../sound/campfire.wav", "../../sound/shaker.wav",// "../../sound/piano_base.wav",
+  "../../sound/bell.mp3", "../../sound/noise.mp3","../../sound/shakuhachi.mp3",
+  "../../sound/bird1.mp3", "../../sound/pad_low.mp3", "../../sound/water.mp3",
+  "../../sound/bird2.mp3", "../../sound/piano_melo2.mp3", "../../sound/windchime.mp3",
+  "../../sound/campfire.mp3", "../../sound/shaker.mp3",// "../../sound/piano_chord.mp3",
   
   /*
-  "../../sound/.wav", "../../sound/.wav",
-  "../../sound/.wav", "../../sound/.wav", "../../sound/.wav",
-  "../../sound/.wav", "../../sound/.wav", "../../sound/.wav",
+  "../../sound/.mp3", "../../sound/.mp3",
+  "../../sound/.mp3", "../../sound/.mp3", "../../sound/.mp3",
+  "../../sound/.mp3", "../../sound/.mp3", "../../sound/.mp3",
   */
 };
 
@@ -34,7 +38,8 @@ HashMap<String, Amplitude> amp = new HashMap<String, Amplitude>();
 float master_volume = 1.0;
 
 void audioSetup(){
-  base_sound = new SoundFile(this, "../../sound/piano_base.wav");
+  fft = new FFT(this, bands);
+  base_sound = new SoundFile(this, "../../sound/piano_melo1.mp3");
   
   for (int i = 0; i < sounds.length; i++) {
     String path = sounds[i];
@@ -316,7 +321,7 @@ class LineFlower extends Flower {
 }
 LineFlower lineFlower;
 
-// processing
+// processing;
 void setup(){
   fullScreen();
   smooth(8);
@@ -325,12 +330,12 @@ void setup(){
   audioSetup();
   
   Point center = new Point(width/2.0,height/2.0);
-  Point linecenter = new Point(width/3.0,height/3.0);
+  // Point linecenter = new Point(width/3.0,height/3.0);
   float r = 60.0;
   int depth = 2;
 
   circleFlower = new CircleFlower(center,r*1.5,depth); // rで大きさを変換
-  lineFlower = new LineFlower(linecenter,r,depth);
+  // lineFlower = new LineFlower(linecenter,r,depth);
 }
 
 void draw(){
