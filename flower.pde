@@ -3,6 +3,11 @@ import java.util.HashSet;
 import java.util.HashMap;
 import processing.sound.*;
 
+// loading
+boolean is_loaded = false;
+String dot;
+String dots;
+
 // sound setting
 TriOsc tri_osc;
 Env env;
@@ -65,9 +70,19 @@ void audioSetup(){
     SoundFile sf = sound_files.get(path);
     if (sf != null) sf.amp(0);
   }
+  is_loaded = true;
 }
 
 void updateVolumes(){
+  for(SoundFile sf : sound_files.values()) sf.amp(0.0);
+
+  for(Shape s : circleFlower.shape_list){
+    if(s.state){
+      SoundFile sf = sound_files.get(s.sound);
+      if(sf != null) sf.amp(0.4*master_volume);
+    }
+  }
+  /*
   for(String path : sounds){
     float volume = 0.0;
     
@@ -83,7 +98,7 @@ void updateVolumes(){
     if(sf != null){
       sf.amp(volume);
     }
-  }
+  }*/
 }
 
 // Point
@@ -141,12 +156,13 @@ abstract class Shape {
       draw();
       blendMode(BLEND);
     }
+  }
 
+  public void postRender(){
     noFill();
     stroke(216);
     strokeWeight(1.5);
     draw();
-
 
     fill(255);
     textAlign(CENTER, CENTER);
@@ -194,7 +210,7 @@ class Hexagon extends Shape {
 
   @Override
   public boolean contains(float mx, float my){
-    return dist(mouseX, mouseY, p.x, p.y) < r;
+    return dist(mx, my, p.x, p.y) < r * 0.966;
   }
 }
 
@@ -305,6 +321,7 @@ class CircleFlower extends Flower{
       
       s.render(current_vol);
     }
+    for (Shape s : shape_list) s.postRender();
   }
 }
 CircleFlower circleFlower;
@@ -371,9 +388,7 @@ LineFlower lineFlower;
 void setup(){
   fullScreen();
   smooth(8);
-  background(0);
-  
-  audioSetup();
+  dot = ".";
   
   Point center = new Point(width/2.0,height/2.0);
   Point linecenter = new Point(width/3.0,height/3.0);
@@ -382,14 +397,33 @@ void setup(){
 
   circleFlower = new CircleFlower(center,r*1.5,depth); // rで大きさを変換
   lineFlower = new LineFlower(linecenter,r,depth);
+  
+  thread("audioSetup");
 }
 
-void draw(){
+void nowLoading(){
+  background(0);
+
+  int dotCount = (frameCount / 30) % 3;
+  for(dots = ".";dotCount>0;dotCount--) dots += dot;
+
+  fill(255, 150 + sin(frameCount * 0.01) * 105);
+  textAlign(LEFT,BOTTOM);
+  textSize(24);
+  text("now Loading" + dots, width-40 - maxWidth, height-40);
+}
+
+void mainLoop(){
   background(0);
   circleFlower.draw();
   lineFlower.draw();
   circleFlower.update();
   lineFlower.update();
+}
+
+void draw(){
+  if(!is_loaded) nowLoading();
+  else mainLoop();
 }
 
 void mousePressed(){
