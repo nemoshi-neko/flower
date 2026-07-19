@@ -362,6 +362,8 @@ class ShapeFlower extends Flower{
 
 class LineFlower extends Flower {
   private float base_angle;
+  private float lerp_vol;
+
   public LineFlower(Point center, float r, int max_depth){
     super(center,r,max_depth);
     base_angle = 0;
@@ -387,7 +389,13 @@ class LineFlower extends Flower {
       
       int n = layerPoints.size();
       if (n < 3) continue;
-      stroke(255, 255, 10, 60);
+
+      float color_amt = map(lerp_vol,0,2.0, 0.0, 1.0);
+      color_amt = constrain(color_amt, 0.0, 1.0);
+      int max_color = color(255, 64, 150, 180);
+      int line_color = lerpColor(color(64,255,255),max_color,color_amt);
+      stroke(line_color);
+      strokeWeight(1.5);
       
       for (int i = 0; i < n; i++) {
         Point p1 = layerPoints.get(i).p;
@@ -404,6 +412,13 @@ class LineFlower extends Flower {
 
   @Override
   public void update(){
+    float volume = 0;
+    for(String path : sounds){
+      Amplitude a = amp.get(path);
+      if(a!=null) volume += a.analyze();
+    }
+    lerp_vol = lerp(lerp_vol,volume,0.1);
+
     float angle;
     float speed = 1.0 - 0.85 * cos(12*base_angle);
     base_angle += 0.01 * speed;
