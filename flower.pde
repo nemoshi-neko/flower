@@ -132,44 +132,51 @@ abstract class Shape {
   public Point p;
   public Point init_p;
   public float r;
+  public float init_r;
   public boolean state;
   public int id;
   public String sound;
   public int depthLevel;
   public int branchIndex;
-  public int Color;
+  public int color;
   
   public Shape(Point p,float r, int id, String sound){
     this.p = p;
     this.init_p = new Point(p.x, p.y);
     this.r = r;
+    this.init_r = r;
     this.state = false;
     this.id = id;
     this.sound = sound;
-    this.Color = color(255, 64, 150);
+    this.color = color(255, 64, 150);
   }
 
   public void render(float current_vol){
     if(state){
       blendMode(ADD);
       float alpha = map(current_vol, 0, 0.5, 100, 90);
-      fill(Color,alpha);
+      fill(color,alpha);
       noStroke();
       draw();
       blendMode(BLEND);
     }
   }
 
-  public void postRender(){
+  private void drawOutline(){
     noFill();
     stroke(216);
     strokeWeight(1.5);
     draw();
-
+  }
+  private void drawText(){
     fill(255);
     textAlign(CENTER, CENTER);
     textSize(12);
     text(id, p.x, p.y);
+  }
+  public void postRender(){
+    drawOutline();
+    drawText();
   }
 
   protected abstract void draw();
@@ -229,7 +236,6 @@ abstract class Flower {
 
   public Flower(Point center, float r, int max_depth){
     this.center = center;
-    this.r = r;
     this.r = r;
     this.max_depth = max_depth;
     plant();
@@ -342,7 +348,7 @@ class ShapeFlower extends Flower{
       
       s.p.x = center.x + r.x;
       s.p.y = center.y + r.y;
-      s.r = 90 * scale * r_scale;
+      s.r = s.init_r * scale * r_scale;
     }
   }
 
@@ -380,14 +386,14 @@ class LineFlower extends Flower {
     noFill();
 
     for (int d = 1; d <= max_depth; d++) {
-      ArrayList<FlowerPoint> layerPoints = new ArrayList<FlowerPoint>();
+      ArrayList<FlowerPoint> layer_points = new ArrayList<FlowerPoint>();
       for (FlowerPoint fp : points) {
         if (fp.depth == d) {
-          layerPoints.add(fp);
+          layer_points.add(fp);
         }
       }
       
-      int n = layerPoints.size();
+      int n = layer_points.size();
       if (n < 3) continue;
 
       float color_amt = map(lerp_vol,0,0.5, 0.0, 1.0);
@@ -398,11 +404,11 @@ class LineFlower extends Flower {
       strokeWeight(1.5);
       
       for (int i = 0; i < n; i++) {
-        Point p1 = layerPoints.get(i).p;
+        Point p1 = layer_points.get(i).p;
         for (int j = i + 1; j < n; j++) {
           int diff = j-i;
           if(min(diff,n-diff) < 3) continue;
-          Point p2 = layerPoints.get(j).p;
+          Point p2 = layer_points.get(j).p;
           line(p1.x, p1.y, p2.x, p2.y);
         }
       }
