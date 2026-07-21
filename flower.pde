@@ -195,7 +195,7 @@ class Circle extends Shape{
 
   @Override
   public boolean contains(float mx, float my){
-    return dist(mouseX, mouseY, p.x, p.y) < r;
+    return dist(mx, my, p.x, p.y) < r;
   }
 }
 
