@@ -1,16 +1,24 @@
 // Flower
-abstract class Flower {
+abstract class Flower extends Shape{
   public Point center;
   protected int max_depth;
   protected float r;
   public ArrayList<FlowerPoint> points = new ArrayList<FlowerPoint>();
   private HashSet<String> visited = new HashSet<String>();
 
-  public Flower(Point center, float r, int max_depth){
+  public Flower(Point center, float r, int max_depth,int id, String sound){
+    super(center,r,id,sound);
     this.center = center;
     this.r = r;
     this.max_depth = max_depth;
     plant();
+    
+    for(FlowerPoint fp : points){
+      fp.p.x += center.x;
+      fp.p.y += center.y;
+      fp.init_p.x += center.x;
+      fp.init_p.y += center.y;
+    }
   }
 
   String pointKey(Point p){
@@ -34,11 +42,11 @@ abstract class Flower {
       d[i] = new Point(cos(angle)*r,sin(angle)*r);
     }
 
-    addPoint(center,0,0);
+    addPoint(new Point(0, 0),0,0);
 
     for(int depth=1;depth<=max_depth;depth++){
-      float cx = center.x+d[0].x*depth;
-      float cy = center.y+d[0].y*depth;
+      float cx = d[0].x*depth;
+      float cy = d[0].y*depth;
       int idx = 0;
       for(int i=0;i<6;i++){
         int move_dir = (i+2)%6;
@@ -52,36 +60,56 @@ abstract class Flower {
     }
   }
 
+  @Override
+  protected void draw(){
+    this.render();
+  };
+
+  @Override
+  public boolean contains(float mx, float my) {
+    return false;
+  }
+
   public abstract void mousePressed(float mx, float my, int button);
   public abstract void updateVolumes(HashMap<String,SoundFile> sound_files, float master_volume);
 
   public abstract void update();
-  public abstract void draw();
+  public abstract void render();
 }
 ArrayList<Flower> flowers = new ArrayList<Flower>();
 
+// ShapeFlower
 class ShapeFlower extends Flower{
   public ArrayList<Shape> shape_list = new ArrayList<Shape>();
 
-  public ShapeFlower(Point center, float r, int max_depth, ShapeFactory factory){
-    super(center,r,max_depth);
+  public ShapeFlower(Point center, float r, int max_depth,int id,String sound, ShapeFactory factory){
+    super(center,r,max_depth,id,sound);
 
-    int id = 0;
+    int child_id = 0;
     for(FlowerPoint fp : points){
-      String this_sound = sounds[id % sounds.length];
-      Shape newShape = factory.create(fp.p,r,id,this_sound);
-      shape_list.add(newShape);
-      id++;
+      String this_sound = sounds[(id + child_id) % sounds.length];
+      Shape new_shape = factory.create(fp.p,r,child_id,this_sound);
+      shape_list.add(new_shape);
+      child_id++;
     }
+  }
+
+  public ShapeFlower(Point center, float r, int max_depth, ShapeFactory factory) {
+    this(center, r, max_depth, 0, sounds[0], factory);
   }
 
   @Override
   public void mousePressed(float mx, float my, int button){
     if(mouseButton == RIGHT){
-      for(Shape s : shape_list) s.state = false;
+      for(Shape s : shape_list){
+        s.state = false;
+        if (s instanceof Flower) ((Flower) s).mousePressed(mx, my, button);
+      }
     } else {
       for (Shape s : shape_list) {
-        if (s.contains(mouseX,mouseY)) {
+        if (s instanceof Flower){
+            ((Flower) s).mousePressed(mx, my, button);
+        }else if(s.contains(mx,my)) {
           s.state = !s.state;
           println("Clicked ID: " + s.id + " | Sound: " + s.sound + " | State: " + s.state);
           break;
@@ -117,7 +145,26 @@ class ShapeFlower extends Flower{
         d.x*cos(angle) - d.y*sin(angle),
         d.x*sin(angle) + d.y*cos(angle)
       );
+
+      float tx = center.x + r.x;
+      float ty = center.y + r.y;
+
+      if(s instanceof Flower){
+        Flower cs = (Flower) s;
+        float dx = tx-cs.center.x;
+        float dy = ty-cs.center.y;
       
+        cs.center.x = tx;
+        cs.center.y = ty;
+      
+        for (FlowerPoint fp : cs.points) {
+            fp.p.x += dx;
+            fp.p.y += dy;
+            fp.init_p.x += dx;
+            fp.init_p.y += dy;
+        }
+        cs.update();
+      }
       s.p.x = center.x + r.x;
       s.p.y = center.y + r.y;
       s.r = s.init_r * scale * r_scale;
@@ -125,25 +172,32 @@ class ShapeFlower extends Flower{
   }
 
   @Override
-  public void draw(){
+  public void render(){
     for (Shape s : shape_list){
-      float current_vol = 0;
-      Amplitude current_amp = amp.get(s.sound);
-      if(current_amp != null)
-        current_vol = current_amp.analyze()*8;
+      if(s instanceof Flower){
+        ((Flower) s).render();
+      }else{
+        float current_vol = 0;
+        Amplitude current_amp = amp.get(s.sound);
+        if(current_amp != null)
+          current_vol = current_amp.analyze()*8;
       
-      s.render(current_vol);
+        s.render(current_vol);
+      }
     }
-    for (Shape s : shape_list) s.postRender();
+    for (Shape s : shape_list)
+      if (!(s instanceof Flower))
+        s.postRender();
   }
 }
 
+// LineFlower
 class LineFlower extends Flower {
   private float base_angle;
   private float lerp_vol;
 
-  public LineFlower(Point center, float r, int max_depth){
-    super(center,r,max_depth);
+  public LineFlower(Point center, float r, int max_depth,int id,String sound){
+    super(center,r,max_depth,id,sound);
     base_angle = 0;
   }
   
@@ -153,7 +207,7 @@ class LineFlower extends Flower {
   public void updateVolumes(HashMap<String, SoundFile> sound_files, float master_volume){};
 
   @Override
-  public void draw(){
+  public void render(){
     blendMode(ADD);
     noFill();
 
