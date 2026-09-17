@@ -51,7 +51,7 @@ abstract class Shape {
   }
   public void postRender(){
     drawOutline();
-    drawText();
+    // drawText();
   }
 
   protected abstract void draw();

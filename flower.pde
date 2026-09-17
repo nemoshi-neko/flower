@@ -15,7 +15,7 @@ void setup(){
   float r = 60.0;
   int depth = 2;
 
-  /*
+  
   flowers.add(new ShapeFlower(center,r*1.5,depth,
     (p,radius,id,sound) -> new Circle(p,radius,id,sound)
   )); // rで大きさを変換
@@ -26,13 +26,14 @@ void setup(){
       ngon.shape_color = color(10, 50, 155);
       return ngon;
     }
-  ));*/
-
-  flowers.add(new ShapeFlower(center,r*2,depth,
-    (p,radius,id,sound) -> new ShapeFlower(p,radius*0.2,2,
+  ));
+  /*
+  flowers.add(new ShapeFlower(center,r*3,depth,
+    (p,radius,id,sound) -> new ShapeFlower(p,radius*0.4,1,
       (p2,radius2,id2,sound2) -> new Circle(p2,radius2,id2,sound2)
     )
   ));
+  */
   
   // thread("audioSetup");
 }

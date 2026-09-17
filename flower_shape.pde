@@ -195,6 +195,10 @@ class ShapeFlower extends Flower{
 class LineFlower extends Flower {
   private float base_angle;
   private float lerp_vol;
+  
+  public LineFlower(Point center, float r, int max_depth){
+    this(center,r,max_depth, 0, "");
+  }
 
   public LineFlower(Point center, float r, int max_depth,int id,String sound){
     super(center,r,max_depth,id,sound);
